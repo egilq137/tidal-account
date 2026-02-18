@@ -18,7 +18,7 @@ from user_credentials import client_id, client_secret
 from read_data import get_playlists_id
 
 import time
-from isodelta
+import isodate
 
 
 def make_request(url, params):
@@ -124,14 +124,8 @@ def get_attributes_from_track_list(list_of_dict) -> pd.DataFrame:
 
 # todo: build this with TDD
 def parse_duration(duration: str) -> int:
-    pattern = r"PT(?:(\d+)M)?(?:(\d+)S)?"
-    match = re.search(duration, pattern)
-
-    if match:
-        minutes = int(match.group(1) or 0)
-        seconds = int(match.group(2) or 0)
-        return minutes * 60 + seconds
-    return 0
+    t = isodate.parse_duration(duration)
+    return t.total_seconds()
 
 
 session = start_authorizied_session()
@@ -207,8 +201,10 @@ for playlist_data in playlist_data_list:
     list_of_playlists_df.append(df)
 
 playlists_df = pd.concat(list_of_playlists_df)
-
-
+# parse the duration 
+# todo: this could be done before
+playlists_df['total_seconds'] = playlists_df['duration'].apply(parse_duration)
+playlists_df['total_minutes'] = playlists_df['total_seconds'] / 60
 # plot results for popularity scores
 
 sns.boxplot(data=playlists_df,
@@ -223,4 +219,8 @@ plt.xlim([0,1])
 plt.xlabel('Popularity Score')
 #plt.ylabel(rotation=0)
 plt.tight_layout()
+plt.show()
+
+# plot scatterplot of minutes vs popularity score
+sns.scatterplot(data=playlists_df, x='total_minutes', y='popularity')
 plt.show()
